@@ -503,6 +503,18 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwTLs0uBX3RSHWxrjfr5uFG
 //  State
 // ═══════════════════════════════════════════════════════════
 let D = { lessons: [], students: [], attendance: {}, tempSignups: {} };
+
+function formatDate(raw) {
+  if (!raw) return '';
+  // If already short format like "4/2", return as-is
+  if (/^\d{1,2}\/\d{1,2}$/.test(String(raw).trim())) return String(raw).trim();
+  // If it's a long date string or Date object, parse and format
+  const d = new Date(raw);
+  if (!isNaN(d)) {
+    return (d.getMonth() + 1) + '/' + d.getDate();
+  }
+  return String(raw);
+}
 let currentStudent = null;
 let currentLesson  = 0;
 
@@ -521,7 +533,7 @@ async function api(action, body = {}) {
 async function loadAll() {
   const r = await api('getAll');
   if (r.ok) {
-    D.lessons    = r.lessons    || [];
+    D.lessons    = (r.lessons || []).map(l => ({ ...l, date: formatDate(l.date) }));
     D.students   = r.students   || [];
     D.attendance = r.attendance || {};
     D.tempSignups = r.tempSignups || {};
