@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#1D9E75">
+<title>太極拳課程</title>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { font-size: 16px; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans TC', sans-serif;
+  background: #F4F6F4; color: #1a1a1a; min-height: 100vh; }
+
+/* ── CSS Variables ────────────────────────────────────────── */
+:root {
+  --green:        #1D9E75;
+  --green-dk:     #085041;
+  --green-lt:     #E1F5EE;
+  --green-mid:    #5DCAA5;
+  --amber:        #EF9F27;
+  --amber-lt:     #FAEEDA;
+  --amber-dk:     #633806;
+  --red-lt:       #FCEBEB;
+  --red-dk:       #791F1F;
+  --blue-lt:      #E6F1FB;
+  --blue-dk:      #0C447C;
+  --blue:         #378ADD;
+  --purple-lt:    #EEEDFE;
+  --purple-dk:    #3C3489;
+  --gray:         #F1EFE8;
+  --border:       rgba(0,0,0,0.10);
+  --radius:       14px;
+  --radius-sm:    10px;
+}
+
+/* ── Layout ───────────────────────────────────────────────── */
+#app { max-width: 480px; margin: 0 auto; padding-bottom: 32px; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ── Loading ──────────────────────────────────────────────── */
+#loading-screen {
+  position: fixed; inset: 0; background: var(--green);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 999; transition: opacity 0.4s;
+}
+#loading-screen.hide { opacity: 0; pointer-events: none; }
+.loading-logo { font-size: 56px; margin-bottom: 16px; }
+.loading-title { font-size: 22px; font-weight: 600; color: white; }
+.loading-sub { font-size: 14px; color: rgba(255,255,255,0.75); margin-top: 6px; }
+.loading-spinner { margin-top: 32px; width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.3);
+  border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Top Bar ──────────────────────────────────────────────── */
+.topbar {
+  background: white; border-bottom: 0.5px solid var(--border);
+  padding: 14px 16px; display: flex; align-items: center; gap: 10px;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-size: 18px; font-weight: 600; flex: 1; }
+.back-btn {
+  padding: 7px 14px; border-radius: var(--radius-sm); border: 0.5px solid var(--border);
+  background: white; color: #555; cursor: pointer; font-size: 14px;
+  active: background: #f5f5f5;
+}
+.back-btn:active { background: #f0f0f0; }
+
+/* ── Hero Banner ──────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(160deg, #0F6E56 0%, #1D9E75 60%, #5DCAA5 100%);
+  padding: 36px 20px 32px; text-align: center;
+}
+.hero-emoji { font-size: 52px; display: block; margin-bottom: 10px; }
+.hero-title { font-size: 24px; font-weight: 700; color: white; }
+.hero-sub { font-size: 14px; color: rgba(255,255,255,0.82); margin-top: 4px; }
+
+/* ── Role Cards ───────────────────────────────────────────── */
+.role-list { padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; }
+.role-card {
+  background: white; border-radius: var(--radius); border: 0.5px solid var(--border);
+  padding: 20px 16px; display: flex; align-items: center; gap: 16px;
+  cursor: pointer; transition: transform 0.1s, background 0.1s;
+}
+.role-card:active { transform: scale(0.98); background: #f9f9f9; }
+.role-icon {
+  width: 54px; height: 54px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0;
+}
+.ri-green  { background: var(--green-lt); }
+.ri-purple { background: var(--purple-lt); }
+.ri-blue   { background: var(--blue-lt); }
+.role-name { font-size: 19px; font-weight: 600; }
+.role-desc { font-size: 13px; color: #666; margin-top: 2px; }
+.role-arrow { margin-left: auto; font-size: 22px; color: #aaa; }
+
+/* ── Teacher Dashboard ────────────────────────────────────── */
+.stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 16px; }
+.stat-box {
+  background: white; border-radius: var(--radius-sm); padding: 14px 6px;
+  text-align: center; border: 0.5px solid var(--border);
+}
+.stat-n { font-size: 28px; font-weight: 700; }
+.stat-l { font-size: 11px; color: #777; margin-top: 3px; }
+
+.section-label {
+  font-size: 11px; font-weight: 600; color: #888; letter-spacing: 0.8px;
+  text-transform: uppercase; padding: 4px 16px 8px;
+}
+.menu-list { padding: 0 16px; display: flex; flex-direction: column; gap: 10px; }
+.menu-item {
+  background: white; border-radius: var(--radius); border: 0.5px solid var(--border);
+  padding: 16px; display: flex; align-items: center; gap: 14px; cursor: pointer;
+}
+.menu-item:active { background: #f9f9f9; }
+.menu-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0;
+}
+.menu-text { font-size: 17px; font-weight: 600; }
+.menu-sub { font-size: 12px; color: #777; margin-top: 2px; }
+.menu-arrow { margin-left: auto; font-size: 20px; color: #bbb; }
+
+/* ── Lesson Cards ─────────────────────────────────────────── */
+.lesson-list { padding: 8px 16px; display: flex; flex-direction: column; gap: 10px; }
+.lesson-card {
+  background: white; border-radius: var(--radius); border: 0.5px solid var(--border); padding: 16px;
+}
+.lesson-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.lesson-date { font-size: 18px; font-weight: 700; }
+.cls-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.cls-thu { background: var(--purple-lt); color: var(--purple-dk); }
+.cls-sat { background: var(--green-lt); color: var(--green-dk); }
+.bar-wrap { height: 8px; background: #f0f0f0; border-radius: 4px; margin-bottom: 10px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 4px; background: var(--green); transition: width 0.4s; }
+.bar-fill.low { background: var(--amber); }
+.lesson-foot { display: flex; align-items: center; justify-content: space-between; }
+.lesson-count { font-size: 13px; color: #777; }
+.open-tag {
+  padding: 5px 12px; border-radius: 20px; background: var(--blue-lt); color: var(--blue-dk);
+  font-size: 12px; font-weight: 600;
+}
+.full-tag {
+  padding: 5px 12px; border-radius: 20px; background: var(--gray); color: #888;
+  font-size: 12px;
+}
+
+/* ── Attendance ───────────────────────────────────────────── */
+.picker-scroll {
+  display: flex; gap: 8px; padding: 12px 16px; overflow-x: auto; scrollbar-width: none;
+}
+.picker-scroll::-webkit-scrollbar { display: none; }
+.picker-pill {
+  padding: 9px 16px; border-radius: 20px; border: 0.5px solid var(--border);
+  background: white; color: #666; font-size: 14px; cursor: pointer; white-space: nowrap;
+  flex-shrink: 0; font-weight: 500;
+}
+.picker-pill.active { background: var(--green); color: white; border-color: var(--green); }
+
+.att-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.att-row {
+  background: white; border-radius: var(--radius); border: 0.5px solid var(--border);
+  padding: 14px 16px; display: flex; align-items: center; gap: 14px;
+}
+.att-avatar {
+  width: 46px; height: 46px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; font-weight: 700; flex-shrink: 0;
+}
+.att-name { font-size: 17px; font-weight: 600; flex: 1; }
+.att-btns { display: flex; gap: 8px; }
+.att-btn {
+  width: 44px; height: 44px; border-radius: var(--radius-sm); border: 0.5px solid var(--border);
+  background: white; font-size: 20px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+}
+.att-btn.on-attend { background: var(--green-lt); border-color: var(--green-mid); }
+.att-btn.on-absent  { background: var(--red-lt); border-color: #F09595; }
+
+/* ── Student Manage ───────────────────────────────────────── */
+.add-form {
+  margin: 4px 16px 4px; background: white; border-radius: var(--radius);
+  border: 0.5px solid var(--border); padding: 16px;
+}
+.f-label { font-size: 13px; color: #666; margin-bottom: 5px; display: block; }
+.f-input, .f-select {
+  width: 100%; padding: 13px; border-radius: var(--radius-sm);
+  border: 0.5px solid rgba(0,0,0,0.18); background: #fafafa;
+  color: #1a1a1a; font-size: 16px; margin-bottom: 12px;
+}
+.f-btn {
+  width: 100%; padding: 14px; border-radius: var(--radius-sm);
+  background: var(--green); color: white; border: none;
+  font-size: 16px; font-weight: 600; cursor: pointer;
+}
+.f-btn:active { background: var(--green-dk); }
+
+.student-list { padding: 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.student-row {
+  background: white; border-radius: var(--radius); border: 0.5px solid var(--border);
+  padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+}
+.student-info { flex: 1; }
+.student-n { font-size: 17px; font-weight: 600; }
+.student-c { font-size: 12px; color: #888; margin-top: 2px; }
+.del-btn {
+  width: 36px; height: 36px; border-radius: var(--radius-sm); border: 0.5px solid var(--border);
+  background: white; color: #aaa; cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+}
+.del-btn:active { background: var(--red-lt); color: var(--red-dk); }
+
+/* ── Share ────────────────────────────────────────────────── */
+.share-wrap { padding: 16px; }
+.share-msg {
+  background: #f9f9f9; border-radius: var(--radius); border: 0.5px solid var(--border);
+  padding: 16px; white-space: pre-line; font-size: 15px; line-height: 1.75;
+  margin-bottom: 14px;
+}
+.line-btn {
+  width: 100%; padding: 16px; border-radius: var(--radius-sm);
+  background: #06C755; color: white; border: none;
+  font-size: 17px; font-weight: 700; cursor: pointer; letter-spacing: 0.3px;
+}
+.line-btn:active { background: #05b04a; }
+.copied { text-align: center; color: var(--green); font-size: 14px; margin-top: 10px;
+  opacity: 0; transition: opacity 0.3s; }
+.copied.show { opacity: 1; }
+.empty-msg { text-align: center; padding: 48px 20px; color: #999; font-size: 15px; line-height: 1.7; }
+
+/* ── Student Login ────────────────────────────────────────── */
+.name-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.name-btn {
+  background: white; border-radius: var(--radius); border: 0.5px solid var(--border);
+  padding: 18px 16px; display: flex; align-items: center; gap: 16px; cursor: pointer;
+}
+.name-btn:active { background: #f9f9f9; transform: scale(0.99); }
+.name-av {
+  width: 50px; height: 50px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; font-weight: 700;
+}
+.name-text { font-size: 19px; font-weight: 600; }
+.name-cls { font-size: 12px; color: #888; margin-top: 2px; }
+
+/* ── My Schedule ──────────────────────────────────────────── */
+.my-list { padding: 8px 16px; display: flex; flex-direction: column; gap: 10px; }
+.my-card {
+  background: white; border-radius: var(--radius); border: 0.5px solid var(--border); padding: 18px;
+}
+.my-top { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.my-date { font-size: 19px; font-weight: 700; }
+.my-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.my-btn {
+  padding: 16px 8px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border); background: white;
+  font-size: 17px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: all 0.15s;
+}
+.my-btn.sel-go { background: var(--green-lt); border-color: var(--green); color: var(--green-dk); }
+.my-btn.sel-no { background: var(--red-lt); border-color: #F09595; color: var(--red-dk); }
+.my-btn:active { transform: scale(0.97); }
+
+/* ── Temp Signup ──────────────────────────────────────────── */
+.temp-wrap { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.temp-card {
+  background: white; border-radius: var(--radius); border: 0.5px solid var(--border); padding: 18px;
+}
+.temp-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.temp-slots { font-size: 13px; color: #777; margin-bottom: 16px; }
+.signup-field { padding: 13px; border-radius: var(--radius-sm); border: 0.5px solid rgba(0,0,0,0.18);
+  background: #fafafa; color: #1a1a1a; font-size: 16px; width: 100%; margin-bottom: 8px; }
+.signup-btn {
+  width: 100%; padding: 14px; border-radius: var(--radius-sm);
+  background: var(--green); color: white; border: none; font-size: 16px; font-weight: 600; cursor: pointer;
+}
+.signup-btn:active { background: var(--green-dk); }
+.success-banner {
+  background: var(--green-lt); border-radius: var(--radius-sm); border: 0.5px solid var(--green-mid);
+  padding: 14px; color: var(--green-dk); font-size: 15px; text-align: center;
+}
+.full-banner {
+  background: var(--gray); border-radius: var(--radius-sm);
+  padding: 14px; color: #888; font-size: 14px; text-align: center;
+}
+
+/* ── Toast ────────────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: rgba(0,0,0,0.82); color: white; padding: 11px 22px; border-radius: 24px;
+  font-size: 14px; pointer-events: none; opacity: 0; transition: all 0.3s; z-index: 999;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading-screen">
+  <span class="loading-logo">🥋</span>
+  <div class="loading-title">太極拳課程</div>
+  <div class="loading-sub">資料載入中…</div>
+  <div class="loading-spinner"></div>
+</div>
+
+<div id="app">
+
+<!-- ── HOME ─────────────────────────────────────────────── -->
+<div id="s-home" class="screen active">
+  <div class="hero">
+    <span class="hero-emoji">🥋</span>
+    <div class="hero-title">太極拳課程</div>
+    <div class="hero-sub">請選擇您的身份</div>
+  </div>
+  <div class="role-list">
+    <div class="role-card" onclick="go('teacher')">
+      <div class="role-icon ri-green">👩‍🏫</div>
+      <div>
+        <div class="role-name">老師</div>
+        <div class="role-desc">管理課程、查看出席、統計人數</div>
+      </div>
+      <div class="role-arrow">›</div>
+    </div>
+    <div class="role-card" onclick="go('student-login')">
+      <div class="role-icon ri-purple">🧑‍🤝‍🧑</div>
+      <div>
+        <div class="role-name">我是學生</div>
+        <div class="role-desc">填寫出席與請假</div>
+      </div>
+      <div class="role-arrow">›</div>
+    </div>
+    <div class="role-card" onclick="go('temp')">
+      <div class="role-icon ri-blue">✋</div>
+      <div>
+        <div class="role-name">臨時報名</div>
+        <div class="role-desc">查看空位並填寫報名</div>
+      </div>
+      <div class="role-arrow">›</div>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#bbb;padding:20px 0 4px;">資料即時同步至 Google Sheets</p>
+</div>
+
+<!-- ── TEACHER ────────────────────────────────────────────── -->
+<div id="s-teacher" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('home')">← 返回</button>
+    <div class="topbar-title">老師管理後台</div>
+  </div>
+  <div class="stats-row" id="t-stats"></div>
+  <div class="section-label">課程管理</div>
+  <div class="menu-list">
+    <div class="menu-item" onclick="go('lessons')">
+      <div class="menu-icon" style="background:var(--green-lt)">📅</div>
+      <div><div class="menu-text">課程行事曆</div><div class="menu-sub">查看每堂出席人數</div></div>
+      <div class="menu-arrow">›</div>
+    </div>
+    <div class="menu-item" onclick="go('attendance')">
+      <div class="menu-icon" style="background:var(--purple-lt)">✅</div>
+      <div><div class="menu-text">出席登記</div><div class="menu-sub">每次上課點名用</div></div>
+      <div class="menu-arrow">›</div>
+    </div>
+    <div class="menu-item" onclick="go('students')">
+      <div class="menu-icon" style="background:var(--amber-lt)">👥</div>
+      <div><div class="menu-text">學生名單</div><div class="menu-sub" id="student-count-sub">管理固定學生</div></div>
+      <div class="menu-arrow">›</div>
+    </div>
+    <div class="menu-item" onclick="go('share')">
+      <div class="menu-icon" style="background:var(--blue-lt)">📢</div>
+      <div><div class="menu-text">開放臨時報名</div><div class="menu-sub">產生 Line 分享訊息</div></div>
+      <div class="menu-arrow">›</div>
+    </div>
+    <div class="menu-item" onclick="go('add-lesson')">
+      <div class="menu-icon" style="background:var(--gray)">➕</div>
+      <div><div class="menu-text">新增課程日期</div><div class="menu-sub">加入下個月課程</div></div>
+      <div class="menu-arrow">›</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── LESSONS ────────────────────────────────────────────── -->
+<div id="s-lessons" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('teacher')">← 返回</button>
+    <div class="topbar-title">課程行事曆</div>
+  </div>
+  <div style="height:12px"></div>
+  <div class="lesson-list" id="lessons-list"></div>
+</div>
+
+<!-- ── ATTENDANCE ─────────────────────────────────────────── -->
+<div id="s-attendance" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('teacher')">← 返回</button>
+    <div class="topbar-title">出席登記</div>
+  </div>
+  <div class="picker-scroll" id="att-picker"></div>
+  <div class="att-list" id="att-list"></div>
+</div>
+
+<!-- ── STUDENTS ───────────────────────────────────────────── -->
+<div id="s-students" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('teacher')">← 返回</button>
+    <div class="topbar-title">學生名單</div>
+  </div>
+  <div style="height:8px"></div>
+  <div class="section-label">新增學生</div>
+  <div class="add-form">
+    <label class="f-label">學生姓名</label>
+    <input class="f-input" id="new-name" placeholder="例如：陳阿嬤">
+    <label class="f-label">參加班級</label>
+    <select class="f-select" id="new-cls">
+      <option value="thu">禮拜四班</option>
+      <option value="sat">禮拜六班</option>
+      <option value="both">兩班都參加</option>
+    </select>
+    <button class="f-btn" onclick="submitAddStudent()">新增學生</button>
+  </div>
+  <div class="section-label">目前學生</div>
+  <div class="student-list" id="student-list"></div>
+</div>
+
+<!-- ── ADD LESSON ─────────────────────────────────────────── -->
+<div id="s-add-lesson" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('teacher')">← 返回</button>
+    <div class="topbar-title">新增課程</div>
+  </div>
+  <div style="height:8px"></div>
+  <div class="add-form">
+    <label class="f-label">日期（例如：5/1）</label>
+    <input class="f-input" id="lesson-date" placeholder="5/1">
+    <label class="f-label">星期幾</label>
+    <select class="f-select" id="lesson-day">
+      <option value="四">四（禮拜四）</option>
+      <option value="六">六（禮拜六）</option>
+    </select>
+    <label class="f-label">班級</label>
+    <select class="f-select" id="lesson-cls">
+      <option value="thu">禮拜四班</option>
+      <option value="sat">禮拜六班</option>
+    </select>
+    <label class="f-label">人數上限</label>
+    <input class="f-input" id="lesson-cap" type="number" value="8" min="1" max="30">
+    <button class="f-btn" onclick="submitAddLesson()">新增課程</button>
+  </div>
+</div>
+
+<!-- ── SHARE ──────────────────────────────────────────────── -->
+<div id="s-share" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('teacher')">← 返回</button>
+    <div class="topbar-title">開放臨時報名</div>
+  </div>
+  <div class="share-wrap" id="share-wrap"></div>
+</div>
+
+<!-- ── STUDENT LOGIN ──────────────────────────────────────── -->
+<div id="s-student-login" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('home')">← 返回</button>
+    <div class="topbar-title">選擇你的名字</div>
+  </div>
+  <div style="padding:10px 16px 0;font-size:14px;color:#888;">點一下你的名字</div>
+  <div class="name-list" id="name-list"></div>
+</div>
+
+<!-- ── MY SCHEDULE ────────────────────────────────────────── -->
+<div id="s-my-schedule" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('student-login')">← 返回</button>
+    <div class="topbar-title" id="my-title">我的課程</div>
+  </div>
+  <div style="padding:10px 16px 0;font-size:14px;color:#888;">點「參加」或「請假」告知老師</div>
+  <div class="my-list" id="my-list"></div>
+</div>
+
+<!-- ── TEMP SIGNUP ────────────────────────────────────────── -->
+<div id="s-temp" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('home')">← 返回</button>
+    <div class="topbar-title">臨時報名</div>
+  </div>
+  <div class="temp-wrap" id="temp-wrap"></div>
+</div>
+
+</div><!-- #app -->
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  ⚙️  設定：將下面這行換成你的 Apps Script Web App 網址
+// ═══════════════════════════════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycbwTLs0uBX3RSHWxrjfr5uFG2plfx3I3Be1g-k5AcEo__hBaJ8z3k7v6-CGDNiI4BJed/exec';
+
+// ═══════════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════════
+let D = { lessons: [], students: [], attendance: {}, tempSignups: {} };
+let currentStudent = null;
+let currentLesson  = 0;
+
+// ═══════════════════════════════════════════════════════════
+//  API helpers
+// ═══════════════════════════════════════════════════════════
+async function api(action, body = {}) {
+  const url = API_URL + '?action=' + action;
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({ action, ...body }),
+  });
+  return res.json();
+}
+
+async function loadAll() {
+  const r = await api('getAll');
+  if (r.ok) {
+    D.lessons    = r.lessons    || [];
+    D.students   = r.students   || [];
+    D.attendance = r.attendance || {};
+    D.tempSignups = r.tempSignups || {};
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Toast
+// ═══════════════════════════════════════════════════════════
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Navigation
+// ═══════════════════════════════════════════════════════════
+function go(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-' + screen).classList.add('active');
+  window.scrollTo(0, 0);
+  const renders = {
+    'teacher':       renderTeacher,
+    'lessons':       renderLessons,
+    'attendance':    renderAttendance,
+    'students':      renderStudents,
+    'share':         renderShare,
+    'student-login': renderStudentLogin,
+    'temp':          renderTemp,
+  };
+  if (renders[screen]) renders[screen]();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Helpers
+// ═══════════════════════════════════════════════════════════
+const AVS = [
+  {bg:'#9FE1CB',fg:'#085041'},{bg:'#CECBF6',fg:'#3C3489'},
+  {bg:'#F5C4B3',fg:'#712B13'},{bg:'#B5D4F4',fg:'#0C447C'},
+  {bg:'#FAC775',fg:'#633806'},{bg:'#C0DD97',fg:'#27500A'},
+  {bg:'#F4C0D1',fg:'#72243E'},{bg:'#D3D1C7',fg:'#444441'},
+];
+
+function relStudents(lesson) {
+  return D.students.filter(s =>
+    (lesson.cls==='thu' && (s.cls==='thu'||s.cls==='both')) ||
+    (lesson.cls==='sat' && (s.cls==='sat'||s.cls==='both'))
+  );
+}
+
+function attendCount(lesson) {
+  return relStudents(lesson).filter(s =>
+    D.attendance[lesson.id + '-' + s.id] === 'attend'
+  ).length;
+}
+
+function openSlots(lesson) {
+  const temp = (D.tempSignups[lesson.id] || []).length;
+  return lesson.capacity - attendCount(lesson) - temp;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Teacher
+// ═══════════════════════════════════════════════════════════
+function renderTeacher() {
+  const total = D.lessons.length;
+  const avg   = total ? Math.round(D.lessons.reduce((a,l) => a + attendCount(l), 0) / total) : 0;
+  const open  = D.lessons.filter(l => openSlots(l) >= 1).length;
+  document.getElementById('t-stats').innerHTML = `
+    <div class="stat-box"><div class="stat-n">${total}</div><div class="stat-l">本月課程</div></div>
+    <div class="stat-box"><div class="stat-n">${avg}</div><div class="stat-l">平均出席</div></div>
+    <div class="stat-box"><div class="stat-n">${open}</div><div class="stat-l">有空位課次</div></div>
+  `;
+  document.getElementById('student-count-sub').textContent = `目前 ${D.students.length} 位固定學生`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Lessons
+// ═══════════════════════════════════════════════════════════
+function renderLessons() {
+  const c = document.getElementById('lessons-list');
+  c.innerHTML = '';
+  D.lessons.forEach(l => {
+    const rel  = relStudents(l).length;
+    const cnt  = attendCount(l);
+    const open = openSlots(l);
+    const temp = (D.tempSignups[l.id] || []).length;
+    const pct  = rel ? Math.round(cnt / rel * 100) : 0;
+    const div  = document.createElement('div');
+    div.className = 'lesson-card';
+    div.innerHTML = `
+      <div class="lesson-top">
+        <div class="lesson-date">${l.date}（週${l.weekday}）</div>
+        <span class="cls-badge ${l.cls==='thu'?'cls-thu':'cls-sat'}">${l.cls==='thu'?'四班':'六班'}</span>
+      </div>
+      <div class="bar-wrap"><div class="bar-fill${pct<60?' low':''}" style="width:${pct}%"></div></div>
+      <div class="lesson-foot">
+        <div class="lesson-count">出席 ${cnt}人${temp?` ＋臨時 ${temp}人`:''} ／ 共 ${rel}人</div>
+        ${open>=1 ? `<span class="open-tag">空位 ${open}</span>` : `<span class="full-tag">額滿</span>`}
+      </div>
+    `;
+    c.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Attendance
+// ═══════════════════════════════════════════════════════════
+function renderAttendance() {
+  const picker = document.getElementById('att-picker');
+  picker.innerHTML = '';
+  D.lessons.forEach((l, i) => {
+    const p = document.createElement('div');
+    p.className = 'picker-pill' + (i===currentLesson?' active':'');
+    p.textContent = l.date + ' 週' + l.weekday;
+    p.onclick = () => { currentLesson = i; renderAttendance(); };
+    picker.appendChild(p);
+  });
+  const lesson = D.lessons[currentLesson];
+  if (!lesson) return;
+  const list = document.getElementById('att-list');
+  list.innerHTML = '';
+  relStudents(lesson).forEach((s, i) => {
+    const key = lesson.id + '-' + s.id;
+    const st  = D.attendance[key] || '';
+    const av  = AVS[D.students.indexOf(s) % AVS.length];
+    const row = document.createElement('div');
+    row.className = 'att-row';
+    row.innerHTML = `
+      <div class="att-avatar" style="background:${av.bg};color:${av.fg}">${s.name[0]}</div>
+      <div class="att-name">${s.name}</div>
+      <div class="att-btns">
+        <button class="att-btn${st==='attend'?' on-attend':''}" onclick="setAtt('${lesson.id}','${s.id}','attend',this)">✓</button>
+        <button class="att-btn${st==='absent'?' on-absent':''}" onclick="setAtt('${lesson.id}','${s.id}','absent',this)">✕</button>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+async function setAtt(lessonId, studentId, val, btn) {
+  const key = lessonId + '-' + studentId;
+  const cur = D.attendance[key] || '';
+  const nxt = cur === val ? '' : val;
+  D.attendance[key] = nxt;
+  renderAttendance();
+  await api('setAttendance', { lessonId, studentId, status: nxt });
+  renderTeacher();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Students
+// ═══════════════════════════════════════════════════════════
+function renderStudents() {
+  const c = document.getElementById('student-list');
+  c.innerHTML = '';
+  D.students.forEach((s, i) => {
+    const av  = AVS[i % AVS.length];
+    const cls = s.cls==='thu'?'禮拜四班':s.cls==='sat'?'禮拜六班':'四班＋六班';
+    const row = document.createElement('div');
+    row.className = 'student-row';
+    row.innerHTML = `
+      <div class="att-avatar" style="background:${av.bg};color:${av.fg};width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0">${s.name[0]}</div>
+      <div class="student-info">
+        <div class="student-n">${s.name}</div>
+        <div class="student-c">${cls}</div>
+      </div>
+      <button class="del-btn" onclick="submitRemoveStudent('${s.id}','${s.name}')">✕</button>
+    `;
+    c.appendChild(row);
+  });
+}
+
+async function submitAddStudent() {
+  const name = document.getElementById('new-name').value.trim();
+  if (!name) { toast('請輸入學生姓名'); return; }
+  const cls = document.getElementById('new-cls').value;
+  const r = await api('addStudent', { name, cls });
+  if (r.ok) {
+    D.students.push({ id: r.id, name, cls });
+    document.getElementById('new-name').value = '';
+    renderStudents();
+    toast('✓ 已新增 ' + name);
+  }
+}
+
+async function submitRemoveStudent(id, name) {
+  if (!confirm('確定移除「' + name + '」？')) return;
+  const r = await api('removeStudent', { id });
+  if (r.ok) {
+    D.students = D.students.filter(s => s.id !== id);
+    renderStudents();
+    toast('已移除 ' + name);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Add Lesson
+// ═══════════════════════════════════════════════════════════
+async function submitAddLesson() {
+  const date = document.getElementById('lesson-date').value.trim();
+  if (!date) { toast('請輸入日期'); return; }
+  const weekday = document.getElementById('lesson-day').value;
+  const cls     = document.getElementById('lesson-cls').value;
+  const cap     = parseInt(document.getElementById('lesson-cap').value) || 8;
+  const r = await api('addLesson', { date, weekday, cls, capacity: cap });
+  if (r.ok) {
+    D.lessons.push({ id: r.id, date, weekday, cls, capacity: cap });
+    document.getElementById('lesson-date').value = '';
+    toast('✓ 課程已新增');
+    go('lessons');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Share
+// ═══════════════════════════════════════════════════════════
+function renderShare() {
+  const c = document.getElementById('share-wrap');
+  const opens = D.lessons.filter(l => openSlots(l) >= 1);
+  if (!opens.length) {
+    c.innerHTML = '<div class="empty-msg">🎉 目前所有課程已額滿<br>沒有可開放的空位</div>';
+    return;
+  }
+  let msg = '🥋 太極拳課程開放臨時報名！\n\n';
+  opens.forEach(l => {
+    msg += `📅 ${l.date}（週${l.weekday}）— 尚有 ${openSlots(l)} 個名額\n`;
+  });
+  msg += '\n有興趣的朋友請回覆此訊息，留下姓名即可報名 🙏';
+  c.innerHTML = `
+    <p style="font-size:13px;color:#888;margin-bottom:12px;">以下課程有空位，點按鈕複製後貼到 Line 群組：</p>
+    <div class="share-msg">${msg.replace(/\n/g,'<br>')}</div>
+    <button class="line-btn" onclick="copyShare(this, \`${msg.replace(/`/g,'\\`')}\`)">複製訊息，貼到 Line 群組</button>
+    <div class="copied" id="copied-ok">✓ 已複製！請切換到 Line 群組貼上</div>
+  `;
+}
+
+function copyShare(btn, msg) {
+  if (navigator.clipboard) navigator.clipboard.writeText(msg);
+  const el = document.getElementById('copied-ok');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Student Login
+// ═══════════════════════════════════════════════════════════
+function renderStudentLogin() {
+  const c = document.getElementById('name-list');
+  c.innerHTML = '';
+  D.students.forEach((s, i) => {
+    const av  = AVS[i % AVS.length];
+    const cls = s.cls==='thu'?'禮拜四班':s.cls==='sat'?'禮拜六班':'四班＋六班';
+    const div = document.createElement('div');
+    div.className = 'name-btn';
+    div.innerHTML = `
+      <div class="name-av" style="background:${av.bg};color:${av.fg}">${s.name[0]}</div>
+      <div><div class="name-text">${s.name}</div><div class="name-cls">${cls}</div></div>
+      <div class="role-arrow">›</div>
+    `;
+    div.onclick = () => { currentStudent = s; renderMySchedule(); go('my-schedule'); };
+    c.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  My Schedule
+// ═══════════════════════════════════════════════════════════
+function renderMySchedule() {
+  const s = currentStudent;
+  document.getElementById('my-title').textContent = s.name + ' 的課程';
+  const c = document.getElementById('my-list');
+  c.innerHTML = '';
+  const myLessons = D.lessons.filter(l =>
+    (l.cls==='thu' && (s.cls==='thu'||s.cls==='both')) ||
+    (l.cls==='sat' && (s.cls==='sat'||s.cls==='both'))
+  );
+  myLessons.forEach(l => {
+    const key = l.id + '-' + s.id;
+    const st  = D.attendance[key] || '';
+    const div = document.createElement('div');
+    div.className = 'my-card';
+    div.innerHTML = `
+      <div class="my-top">
+        <div class="my-date">${l.date}（週${l.weekday}）</div>
+        <span class="cls-badge ${l.cls==='thu'?'cls-thu':'cls-sat'}">${l.cls==='thu'?'四班':'六班'}</span>
+      </div>
+      <div class="my-btns">
+        <button class="my-btn${st==='attend'?' sel-go':''}" onclick="studentAtt('${l.id}','${s.id}','attend','${l.date}')">✓ 我會參加</button>
+        <button class="my-btn${st==='absent'?' sel-no':''}" onclick="studentAtt('${l.id}','${s.id}','absent','${l.date}')">✕ 那天請假</button>
+      </div>
+    `;
+    c.appendChild(div);
+  });
+}
+
+async function studentAtt(lessonId, studentId, val, dateLabel) {
+  const key = lessonId + '-' + studentId;
+  const cur = D.attendance[key] || '';
+  const nxt = cur === val ? '' : val;
+  D.attendance[key] = nxt;
+  renderMySchedule();
+  await api('setAttendance', { lessonId, studentId, status: nxt });
+  if (nxt === 'attend') toast('✓ ' + dateLabel + ' 已登記參加');
+  if (nxt === 'absent') toast('📝 ' + dateLabel + ' 已登記請假');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Temp Signup
+// ═══════════════════════════════════════════════════════════
+function renderTemp() {
+  const c = document.getElementById('temp-wrap');
+  const opens = D.lessons.filter(l => openSlots(l) >= 1);
+  if (!opens.length) {
+    c.innerHTML = '<div class="empty-msg">😊 目前沒有開放臨時報名的課程<br>請等候老師通知</div>';
+    return;
+  }
+  c.innerHTML = '<p style="font-size:13px;color:#888;margin-bottom:4px;">以下課程有空位可報名：</p>';
+  opens.forEach(l => {
+    const open = openSlots(l);
+    const sigs = D.tempSignups[l.id] || [];
+    const div = document.createElement('div');
+    div.className = 'temp-card';
+    div.innerHTML = `
+      <div class="temp-title">${l.date}（週${l.weekday}）</div>
+      <div class="temp-slots">尚有 ${open} 個空位${sigs.length?` ／ 已有 ${sigs.length} 人報名`:''}</div>
+      <input class="signup-field" placeholder="請輸入您的姓名" id="tname-${l.id}">
+      <input class="signup-field" placeholder="手機（可不填）" id="tphone-${l.id}">
+      <button class="signup-btn" onclick="submitTemp('${l.id}','${l.date}')">確認報名</button>
+      <div class="success-banner" id="tsuccess-${l.id}" style="display:none">✓ 報名成功！老師確認後會在群組通知</div>
+    `;
+    c.appendChild(div);
+  });
+}
+
+async function submitTemp(lessonId, dateLabel) {
+  const name  = (document.getElementById('tname-' + lessonId) || {}).value?.trim();
+  const phone = (document.getElementById('tphone-' + lessonId) || {}).value?.trim() || '';
+  if (!name) { toast('請輸入您的姓名'); return; }
+  const r = await api('tempSignup', { lessonId, name, phone });
+  if (r.ok) {
+    if (!D.tempSignups[lessonId]) D.tempSignups[lessonId] = [];
+    D.tempSignups[lessonId].push({ name, phone });
+    const sb = document.getElementById('tsuccess-' + lessonId);
+    if (sb) sb.style.display = 'block';
+    toast('✓ ' + name + ' 已完成報名 ' + dateLabel);
+  } else {
+    toast('⚠️ ' + (r.error || '報名失敗'));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════════════════
+(async () => {
+  await loadAll();
+  document.getElementById('loading-screen').classList.add('hide');
+  go('home');
+})();
+</script>
+</body>
+</html>
